@@ -1,44 +1,134 @@
 package com.example;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.*;
 
 public class Warehouse {
 
-    private static final Map<String, Warehouse> warehouseMap = new HashMap<String, Warehouse>();
-    private String name;
-    private Warehouse (String name){
+    // Map för att hålla singleton-instanser per namn
+    private static final Map<String, Warehouse> warehouseMap = new HashMap<>();
+
+    private final String name;
+
+    // Instansvariabel för att lagra produkter i detta Warehouse
+    private final List<Product> products = new ArrayList<>();
+
+    private final Set<UUID> changedProducts = new HashSet<>();
+
+    // Privat konstruktor så att nya Warehouse skapas endast via getInstance
+    private Warehouse(String name) {
         this.name = name;
     }
+
+    // Returnerar Warehouse-instans för namnet, skapar ny om saknas
     public static Warehouse getInstance(String name) {
-        return warehouseMap.get(name);
-
+        return warehouseMap.computeIfAbsent(name, Warehouse::new);
     }
 
-
-    public List<Product> getProducts(){
-        return new ArrayList<>();
+    // Returnerar kopia av produkterna i detta Warehouse
+    public List<Product> getProducts() {
+        return new ArrayList<>(products);
     }
 
+    // Returnerar alla produkter som implementerar Shippable
     public List<Shippable> shippableProducts() {
-        return new ArrayList<>();
+        List<Shippable> shippables = new ArrayList<>();
+        for (Product product : products) {
+            if (product instanceof Shippable) {
+                shippables.add((Shippable) product);
+            }
+        }
+        return shippables;
     }
 
+    // Rensar produkterna i detta Warehouse
     public void clearProducts() {
-        warehouseMap.clear();
+        products.clear();
     }
 
+    // Returnerar true om lagret är tomt
     public boolean isEmpty() {
-        return warehouseMap.isEmpty();
+        return products.isEmpty();
     }
 
+    // Returnerar Warehouse-namnet
+    public String getName() {
+        return name;
+    }
+
+    // Lägger till en produkt, kastar om produkten är null
     public void addProduct(Product product) {
-        if(product == null){
-            throw new IllegalArgumentException("Product cannot be null");
+        if (product == null) {
+            throw new IllegalArgumentException("Product cannot be null.");
+        }
+        products.add(product);
+    }
+
+    public Optional<Product> getProductById(UUID id) {
+        for (Product product : products) {
+            if(product.uuid().equals(id)) {
+                return Optional.of(product);
+            }
+        }
+        return null;
+    }
+// Alternativ metod med javastreams:
+//   public Optional<Product> getProductById(UUID id) {
+//        return products.stream()
+//                .filter(p -> p.uuid().equals(id))
+//                .findFirst();
+//    }
+
+
+    public boolean remove(UUID uuid) {
+        Iterator<Product> iterator = products.iterator();
+        while (iterator.hasNext()) {
+            Product product = iterator.next();
+            if (product.uuid().equals(uuid)) { //metod som anropar annan medtod uuid() i den abstrakta klassen.
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void updateProductPrice(UUID uuid, BigDecimal newPrice) {
+        for (Product product : products) {
+            if(product.uuid().equals(uuid)) {
+                product.setPrice(newPrice);
+                changedProducts.add(uuid);
+            }
         }
 
 
+    }
+    public List<Product> getChangedProducts() {
+        List<Product> changedList = new ArrayList<>();
+        for (Product product : products) {
+            if (changedProducts.contains(product.uuid())) {
+                changedList.add(product);
+            }
+        }
+        return changedList;
+    }
+
+    public List<Perishable> expiredProducts() {
+        return List.of(new Perishable() {
+            @Override
+            public LocalDate expirationDate() {
+                return null;
+            }
+
+            @Override
+            public boolean isExpired() {
+                return Perishable.super.isExpired();
+            }
+        }
+        );
+    }
+
+    public List getProductsGroupedByCategories() {
+        return new ArrayList<>(warehouseMap.values());
     }
 }

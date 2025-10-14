@@ -16,11 +16,16 @@ public class ElectronicsProduct extends  Product implements Shippable {
 
     @Override
     public double weight() {
-        return weight.doubleValue();
+        return  weight != null ? weight.doubleValue() : 0.0;
     }
 
     @Override
     public BigDecimal calculateShippingCost() {
         return null;
+    }
+
+    @Override
+    public String productDetails() {
+        return "Electronics: " + name() + " " + category() + " " + price() + "Warranty: " + warrantyMonths + " months.";
     }
 }

@@ -1,5 +1,7 @@
 package com.example;
 
+import java.math.BigDecimal;
+
 public final class Category {
     private final String name;
 
@@ -12,6 +14,8 @@ public final class Category {
     public String getName() {
         return name;
     }
+
+
 
 
 }

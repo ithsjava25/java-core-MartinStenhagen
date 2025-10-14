@@ -7,7 +7,7 @@ import java.util.UUID;
 public class FoodProduct extends Product implements Perishable,Shippable {
 
     private final LocalDate expirationDate;
-    private final double weight;
+    private final BigDecimal weight;
 
     public FoodProduct(
             UUID uuid,
@@ -15,7 +15,7 @@ public class FoodProduct extends Product implements Perishable,Shippable {
             Category category,
             BigDecimal price,
             LocalDate expirationDate,
-            double weight) {
+            BigDecimal weight) {
 
         super(uuid,name, category, price);
         this.expirationDate = expirationDate;
@@ -24,12 +24,23 @@ public class FoodProduct extends Product implements Perishable,Shippable {
     public LocalDate expirationDate() {
         return expirationDate;
     }
+
+    @Override
+    public boolean isExpired() {
+        return Perishable.super.isExpired();
+    }
+
     public double weight() {
-        return weight;
+        return weight != null ? weight.doubleValue() : 0.0;
     }
 
     @Override
     public BigDecimal calculateShippingCost() {
-        return null;
+        return BigDecimal.TEN;
+    }
+
+    @Override
+    public String productDetails() {
+        return "Food: " + name() + ", Expires: " + expirationDate + ", Weight: " + weight;
     }
 }
