@@ -17,10 +17,21 @@ public class FoodProduct extends Product implements Perishable,Shippable {
             LocalDate expirationDate,
             BigDecimal weight) {
 
-        super(uuid,name, category, price);
+        super(uuid,name, category, validatePrice(price)); // metodanrop för att kolla att price inte är negativt.
         this.expirationDate = expirationDate;
         this.weight = weight;
+
+        if (weight.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Weight cannot be negative.");
+        }
     }
+    private static BigDecimal validatePrice(BigDecimal price) {
+        if (price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Price cannot be negative.");
+        }
+        return price;
+    }
+
     public LocalDate expirationDate() {
         return expirationDate;
     }
