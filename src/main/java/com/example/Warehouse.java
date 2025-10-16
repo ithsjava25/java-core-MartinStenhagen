@@ -71,7 +71,7 @@ public class Warehouse {
                 return Optional.of(product);
             }
         }
-        return null;
+        return Optional.empty();
     }
 // Alternativ metod med javastreams:
 //   public Optional<Product> getProductById(UUID id) {
@@ -94,12 +94,10 @@ public class Warehouse {
     }
 
     public void updateProductPrice(UUID uuid, BigDecimal newPrice) {
-        for (Product product : products) {
-            if(product.uuid().equals(uuid)) {
-                product.setPrice(newPrice);
-                changedProducts.add(uuid);
-            }
-        }
+        Product product = products.stream()
+                .filter(p -> p.uuid().equals(uuid))
+                .findFirst()
+                .orElseThrow(()-> new NoSuchElementException("Product not found with id:"));
 
 
     }
