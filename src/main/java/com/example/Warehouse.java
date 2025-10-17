@@ -1,7 +1,6 @@
 package com.example;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,16 +81,9 @@ public class Warehouse {
 //    }
 
 
-    public boolean remove(UUID uuid) {
-        Iterator<Product> iterator = products.iterator();
-        while (iterator.hasNext()) {
-            Product product = iterator.next();
-            if (product.uuid().equals(uuid)) { //metod som anropar annan medtod uuid() i den abstrakta klassen.
-                iterator.remove();
-                return true;
-            }
-        }
-        return false;
+    public void remove(UUID uuid) {
+        //metod som anropar annan medtod uuid() i den abstrakta klassen.
+        products.removeIf(product -> product.uuid().equals(uuid));
     }
 
     public void updateProductPrice(UUID uuid, BigDecimal newPrice) {

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,7 +14,14 @@ import java.util.stream.Collectors;
  */
 class WarehouseAnalyzer {
     private final Warehouse warehouse;
-    
+
+    private boolean debug = false; // sätt till true för att aktivera debugutskrifter
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+
     public WarehouseAnalyzer(Warehouse warehouse) {
         this.warehouse = warehouse;
     }
@@ -142,29 +150,62 @@ class WarehouseAnalyzer {
      * number of standard deviations. Uses population standard deviation over all products.
      * Test expectation: with a mostly tight cluster and two extremes, calling with 2.0 returns the two extremes.
      *
-     * @param standardDeviations threshold in standard deviations (e.g., 2.0)
+     * @param threshold threshold in standard deviations (e.g., 2.0)
      * @return list of products considered outliers
      */
-    public List<Product> findPriceOutliers(double standardDeviations) {
+    public List<Product> findPriceOutliers(double threshold) {
         List<Product> products = warehouse.getProducts();
-        int n = products.size();
-        if (n == 0) return List.of();
-        double sum = products.stream().map(Product::price).mapToDouble(bd -> bd.doubleValue()).sum();
-        double mean = sum / n;
-        double variance = products.stream()
-                .map(Product::price)
-                .mapToDouble(bd -> Math.pow(bd.doubleValue() - mean, 2))
-                .sum() / n;
-        double std = Math.sqrt(variance);
-        double threshold = standardDeviations * std;
-        List<Product> outliers = new ArrayList<>();
+        if (products.isEmpty()) return List.of();
+
+        int n = 0;
+        double mean = 0.0;
+        double M2 = 0.0;
+
         for (Product p : products) {
-            double diff = Math.abs(p.price().doubleValue() - mean);
-            if (diff > threshold) outliers.add(p);
+            double x = p.price().doubleValue();
+            n++;
+            double delta = x - mean;
+            mean += delta / n;
+            double delta2 = x - mean;
+            M2 += delta * delta2;
         }
-        return outliers;
+
+        double variance = (n > 1) ? M2 / (n - 1) : 0.0;
+        double stdDev = Math.sqrt(variance);
+        double thresholdValue = threshold * stdDev;
+
+        if (debug) {
+            System.out.println("Mean: " + mean);
+            System.out.println("StdDev: " + stdDev);
+            System.out.println("Threshold value: " + thresholdValue);
+
+            double finalMean = mean;
+            products.forEach(p -> {
+                double diff = Math.abs(p.price().doubleValue() - finalMean);
+                System.out.println(p.name() + " price: " + p.price() + ", diff from mean: " + diff);
+            });
+        }
+
+        double finalMean1 = mean;
+        return products.stream()
+                .filter(p -> Math.abs(p.price().doubleValue() - finalMean1) > thresholdValue)
+                .collect(Collectors.toList());
     }
-    
+
+
+
+
+    private double computeMedian(List<Double> sortedList) {
+        int n = sortedList.size();
+        if (n % 2 == 0) {
+            return (sortedList.get(n / 2 - 1) + sortedList.get(n / 2)) / 2.0;
+        } else {
+            return sortedList.get(n / 2);
+        }
+    }
+
+
+
     /**
      * Groups all shippable products into ShippingGroup buckets such that each group's total weight
      * does not exceed the provided maximum. The goal is to minimize the number of groups and/or total
@@ -221,7 +262,7 @@ class WarehouseAnalyzer {
             BigDecimal discounted = p.price();
             if (p instanceof Perishable per) {
                 LocalDate exp = per.expirationDate();
-                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(today, exp);
+                long daysBetween = ChronoUnit.DAYS.between(today, exp);
                 if (daysBetween == 0) {
                     discounted = p.price().multiply(new BigDecimal("0.50"));
                 } else if (daysBetween == 1) {
