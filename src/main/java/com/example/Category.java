@@ -19,6 +19,7 @@ public final class Category {
         String formattedName = name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
         return cache.computeIfAbsent(formattedName, Category::new);
     }
+
     public String getName() {
         return name;
     }

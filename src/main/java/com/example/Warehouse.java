@@ -3,6 +3,7 @@ package com.example;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Warehouse {
 
@@ -126,7 +127,9 @@ public class Warehouse {
         );
     }
 
-    public List getProductsGroupedByCategories() {
-        return new ArrayList<>(warehouseMap.values());
+    public Map<Category, List<Product>> getProductsGroupedByCategories() {
+        return products.stream()
+                .collect(Collectors.groupingBy(Product::category));
     }
+
 }
