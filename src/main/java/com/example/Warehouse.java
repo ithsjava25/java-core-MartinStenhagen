@@ -113,19 +113,13 @@ public class Warehouse {
     }
 
     public List<Perishable> expiredProducts() {
-        return List.of(new Perishable() {
-            @Override
-            public LocalDate expirationDate() {
-                return null;
-            }
-
-            @Override
-            public boolean isExpired() {
-                return Perishable.super.isExpired();
-            }
-        }
-        );
+        return products.stream()
+                .filter(p -> p instanceof Perishable)
+                .map(p -> (Perishable) p)
+                .filter(Perishable::isExpired)
+                .collect(Collectors.toList());
     }
+
 
     public Map<Category, List<Product>> getProductsGroupedByCategories() {
         return products.stream()

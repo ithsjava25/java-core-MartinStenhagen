@@ -19,16 +19,23 @@ public class ElectronicsProduct extends  Product implements Shippable {
 
     @Override
     public double weight() {
-        return  weight != null ? weight.doubleValue() : 0.0;
+        return weight.doubleValue();  // konvertering krävs enligt interface
     }
 
     @Override
     public BigDecimal calculateShippingCost() {
-        return null;
+        BigDecimal base = BigDecimal.valueOf(79);
+        BigDecimal extra = BigDecimal.valueOf(49);
+
+        if (weight.compareTo(BigDecimal.valueOf(5.0)) > 0) {
+            return base.add(extra);
+        }
+        return base;
     }
+
 
     @Override
     public String productDetails() {
-        return "Electronics: " + name() + " " + category() + " " + price() + "Warranty: " + warrantyMonths + " months.";
+        return "Electronics: " + name() +", " + "Warranty: " + warrantyMonths + " months";
     }
 }

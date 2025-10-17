@@ -41,17 +41,19 @@ public class FoodProduct extends Product implements Perishable,Shippable {
         return Perishable.super.isExpired();
     }
 
+    @Override
     public double weight() {
-        return weight != null ? weight.doubleValue() : 0.0;
+        return weight.doubleValue();  // konverterar BigDecimal -> double
     }
 
     @Override
     public BigDecimal calculateShippingCost() {
-        return BigDecimal.TEN;
+        return weight.multiply(BigDecimal.valueOf(50)); // exakt beräkning
     }
+
 
     @Override
     public String productDetails() {
-        return "Food: " + name() + ", Expires: " + expirationDate + ", Weight: " + weight;
+        return "Food: " + name() + ", Expires: " + expirationDate;
     }
 }
