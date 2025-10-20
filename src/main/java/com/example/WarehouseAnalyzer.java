@@ -157,40 +157,37 @@ class WarehouseAnalyzer {
         List<Product> products = warehouse.getProducts();
         if (products.isEmpty()) return List.of();
 
-        int n = 0;
-        double mean = 0.0;
-        double M2 = 0.0;
+        // Extrahera priser och sortera
+        List<Double> prices = products.stream()
+                .map(p -> p.price().doubleValue())
+                .sorted()
+                .collect(Collectors.toList());
 
-        for (Product p : products) {
-            double x = p.price().doubleValue();
-            n++;
-            double delta = x - mean;
-            mean += delta / n;
-            double delta2 = x - mean;
-            M2 += delta * delta2;
-        }
+        double q1 = getPercentile(prices, 25);
+        double q3 = getPercentile(prices, 75);
+        double iqr = q3 - q1;
 
-        double variance = (n > 1) ? M2 / (n - 1) : 0.0;
-        double stdDev = Math.sqrt(variance);
-        double thresholdValue = threshold * stdDev;
+        double lowerBound = q1 - threshold * iqr;
+        double upperBound = q3 + threshold * iqr;
 
         if (debug) {
-            System.out.println("Mean: " + mean);
-            System.out.println("StdDev: " + stdDev);
-            System.out.println("Threshold value: " + thresholdValue);
-
-            double finalMean = mean;
-            products.forEach(p -> {
-                double diff = Math.abs(p.price().doubleValue() - finalMean);
-                System.out.println(p.name() + " price: " + p.price() + ", diff from mean: " + diff);
-            });
+            System.out.println("Q1: " + q1);
+            System.out.println("Q3: " + q3);
+            System.out.println("IQR: " + iqr);
+            System.out.println("Lower Bound: " + lowerBound);
+            System.out.println("Upper Bound: " + upperBound);
         }
 
-        double finalMean1 = mean;
+        // Returnera produkter utanför IQR-gränser
         return products.stream()
-                .filter(p -> Math.abs(p.price().doubleValue() - finalMean1) > thresholdValue)
+                .filter(p -> {
+                    double price = p.price().doubleValue();
+                    return price < lowerBound || price > upperBound;
+                })
                 .collect(Collectors.toList());
     }
+
+
 
 
 
@@ -331,6 +328,18 @@ class WarehouseAnalyzer {
         Product cheapest = items.stream().min(Comparator.comparing(Product::price)).orElse(null);
         return new InventoryStatistics(totalProducts, totalValue, averagePrice, expiredCount, categoryCount, mostExpensive, cheapest);
     }
+    private double getPercentile(List<Double> sortedList, double percentile) {
+        if (sortedList.isEmpty()) return Double.NaN;
+        double index = (percentile / 100.0) * (sortedList.size() - 1);
+        int lower = (int) Math.floor(index);
+        int upper = (int) Math.ceil(index);
+        if (lower == upper) {
+            return sortedList.get(lower);
+        } else {
+            return sortedList.get(lower) +
+                    (sortedList.get(upper) - sortedList.get(lower)) * (index - lower);
+        }
+    }
 }
 
 /**
@@ -350,6 +359,8 @@ class ShippingGroup {
                 .map(Shippable::calculateShippingCost)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+
 
     public List<Shippable> getProducts() { return new ArrayList<>(products); }
     public Double getTotalWeight() { return totalWeight; }

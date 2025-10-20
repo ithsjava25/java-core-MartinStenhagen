@@ -197,12 +197,12 @@ class  EdgeCaseTest {
             // Arrange - Most products around 10-20, with outliers
             IntStream.rangeClosed(1, 10).forEach(i ->
                     warehouse.addProduct(new FoodProduct(UUID.randomUUID(), "Normal" + i, Category.of("Test"),
-                            new BigDecimal("50.00").add(new BigDecimal(i % 3)), LocalDate.now().plusDays(5), BigDecimal.ONE))
+                            new BigDecimal("15.00").add(new BigDecimal(i % 3)), LocalDate.now().plusDays(5), BigDecimal.ONE))
             );  //ändrat från 15 pga problem med testet.
             Product outlierHigh = new FoodProduct(UUID.randomUUID(), "Expensive", Category.of("Test"),
-                    new BigDecimal("120.00"), LocalDate.now().plusDays(5), BigDecimal.ONE); //ändrat från 500
+                    new BigDecimal("500.00"), LocalDate.now().plusDays(5), BigDecimal.ONE); //ändrat från 500
             Product outlierLow = new FoodProduct(UUID.randomUUID(), "Cheap", Category.of("Test"),
-                    new BigDecimal("0.50"), LocalDate.now().plusDays(5), BigDecimal.ONE); //ändrat från 0.1
+                    new BigDecimal("0.1"), LocalDate.now().plusDays(5), BigDecimal.ONE); //ändrat från 0.1
 
             warehouse.addProduct(outlierHigh);
             warehouse.addProduct(outlierLow);

@@ -9,6 +9,7 @@ public class Warehouse {
     // Map för att hålla singleton-instanser per namn
     private static final Map<String, Warehouse> warehouseMap = new HashMap<>();
 
+
     private final String name;
 
     // Instansvariabel för att lagra produkter i detta Warehouse
@@ -25,10 +26,15 @@ public class Warehouse {
     public static Warehouse getInstance(String name) {
         return warehouseMap.computeIfAbsent(name, Warehouse::new);
     }
+    public static Warehouse getInstance() {
+        return getInstance("default");
+    }
+
+
 
     // Returnerar kopia av produkterna i detta Warehouse
     public List<Product> getProducts() {
-        return new ArrayList<>(products);
+        return List.copyOf(products);
     }
 
     // Returnerar alla produkter som implementerar Shippable
@@ -62,6 +68,14 @@ public class Warehouse {
         if (product == null) {
             throw new IllegalArgumentException("Product cannot be null.");
         }
+        boolean alreadyExists = products.stream()
+                .anyMatch(p -> p.uuid().equals(product.uuid()));
+
+        if (alreadyExists) {
+            throw new IllegalArgumentException("Product with that id already exists, use updateProduct for updates.");
+        }
+
+
         products.add(product);
     }
 
@@ -90,10 +104,13 @@ public class Warehouse {
         Product product = products.stream()
                 .filter(p -> p.uuid().equals(uuid))
                 .findFirst()
-                .orElseThrow(()-> new NoSuchElementException("Product not found with id:"));
+                .orElseThrow(() -> new NoSuchElementException("Product not found with id: " + uuid));
 
-
+        product.setPrice(newPrice);
+        changedProducts.add(uuid);
     }
+
+
     public List<Product> getChangedProducts() {
         List<Product> changedList = new ArrayList<>();
         for (Product product : products) {
@@ -117,5 +134,6 @@ public class Warehouse {
         return products.stream()
                 .collect(Collectors.groupingBy(Product::category));
     }
+
 
 }
