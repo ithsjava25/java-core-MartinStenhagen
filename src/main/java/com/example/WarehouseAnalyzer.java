@@ -34,6 +34,7 @@ class WarehouseAnalyzer {
         List<Product> result = new ArrayList<>();
         for (Product p : warehouse.getProducts()) {
             BigDecimal price = p.price();
+            if (p.price() == null) continue;
             if (price.compareTo(minPrice) >= 0 && price.compareTo(maxPrice) <= 0) {
                 result.add(p);
             }
@@ -206,13 +207,14 @@ class WarehouseAnalyzer {
      */
     public List<ShippingGroup> optimizeShippingGroups(BigDecimal maxWeightPerGroup) {
         BigDecimal maxW = maxWeightPerGroup.setScale(2,RoundingMode.HALF_UP);
-        List<Shippable> items = warehouse.shippableProducts();
-        // Sort by descending weight (First-Fit Decreasing)
-        items.sort((a, b) ->{
-            BigDecimal wa = BigDecimal.valueOf(Objects.requireNonNullElse(a.weight(), 0.0));
-            BigDecimal wb = BigDecimal.valueOf(Objects.requireNonNullElse(b.weight(), 0.0));
-            return wb.compareTo(wa);
-        });
+        List<Shippable> items = warehouse.shippableProducts().stream()
+                .sorted((a, b) -> {
+                    BigDecimal wa = BigDecimal.valueOf(Objects.requireNonNullElse(a.weight(), 0.0));
+                    BigDecimal wb = BigDecimal.valueOf(Objects.requireNonNullElse(b.weight(), 0.0));
+                    return wb.compareTo(wa);
+                })
+                .toList();
+
         List<List<Shippable>> bins = new ArrayList<>();
         for (Shippable item : items) {
             BigDecimal itemWeight = BigDecimal.valueOf(Objects.requireNonNullElse(item.weight(), 0.0)).setScale(2, RoundingMode.HALF_UP);
@@ -221,8 +223,7 @@ class WarehouseAnalyzer {
             for (List<Shippable> bin : bins) {
                 BigDecimal binWeight = bin.stream()
                         .map(s -> BigDecimal.valueOf(Objects.requireNonNullElse(s.weight(), 0.0)))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(2, RoundingMode.HALF_UP);
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 if (binWeight.add(itemWeight).compareTo(maxW) <= 0) {
                     bin.add(item);
@@ -266,7 +267,7 @@ class WarehouseAnalyzer {
                     discounted = p.price().multiply(new BigDecimal("0.50"));
                 } else if (daysBetween == 1) {
                     discounted = p.price().multiply(new BigDecimal("0.70"));
-                } else if (daysBetween > 1 && daysBetween <= 3) {
+                } else if (daysBetween == 2 || daysBetween == 3) {
                     discounted = p.price().multiply(new BigDecimal("0.85"));
                 } else {
                     discounted = p.price();
