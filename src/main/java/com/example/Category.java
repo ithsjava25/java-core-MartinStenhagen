@@ -10,6 +10,7 @@ public final class Category {
     private Category(String name) {
         this.name = name;
     }
+
     public static Category of(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Category name can't be null");
@@ -23,8 +24,5 @@ public final class Category {
     public String getName() {
         return name;
     }
-
-
-
 
 }

@@ -1,20 +1,15 @@
 package com.example;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 public abstract class Product {
-    private UUID uuid;
-    private String name;
-    private Category category;
+    private final UUID uuid;
+    private final String name;
+    private final Category category;
     private BigDecimal price;
 
-    List<Product> products = new ArrayList<>();
-
-
-    public Product(UUID uuid,String name, Category category, BigDecimal price) {
+    public Product(UUID uuid, String name, Category category, BigDecimal price) {
         this.uuid = uuid;
         this.name = name;
         this.category = category;
@@ -43,8 +38,6 @@ public abstract class Product {
     public void setPrice(BigDecimal price) {
         this.price = price;
     }
-
-
 
 
 }
