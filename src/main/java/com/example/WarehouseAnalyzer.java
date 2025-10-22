@@ -118,20 +118,20 @@ class WarehouseAnalyzer {
             Category cat = e.getKey();
             List<Product> items = e.getValue();
             BigDecimal weightedSum = BigDecimal.ZERO;
-            double weightSum = 0.0;
+            BigDecimal weightSum = BigDecimal.ZERO;
             for (Product p : items) {
                 if (p instanceof Shippable s) {
-                    double w = Optional.ofNullable(s.weight()).orElse(0.0);
-                    if (w > 0) {
-                        BigDecimal wBD = BigDecimal.valueOf(w);
-                        weightedSum = weightedSum.add(p.price().multiply(wBD));
-                        weightSum += w;
+                    BigDecimal weight = BigDecimal.valueOf(s.weight());
+                    if (weight.compareTo(BigDecimal.ZERO) > 0) {
+                        weightedSum = weightedSum.add(p.price().multiply(weight));
+                        weightSum = weightSum.add(weight);
                     }
                 }
+
             }
             BigDecimal avg;
-            if (weightSum > 0) {
-                avg = weightedSum.divide(BigDecimal.valueOf(weightSum), 2, RoundingMode.HALF_UP);
+            if (weightSum.compareTo(BigDecimal.ZERO) > 0) {
+                avg = weightedSum.divide(weightSum, 2, RoundingMode.HALF_UP);
             } else {
                 BigDecimal sum = items.stream().map(Product::price).reduce(BigDecimal.ZERO, BigDecimal::add);
                 avg = sum.divide(BigDecimal.valueOf(items.size()), 2, RoundingMode.HALF_UP);
@@ -142,12 +142,21 @@ class WarehouseAnalyzer {
     }
 
     /**
-     * Identifies products whose price deviates from the mean by more than the specified
-     * number of standard deviations. Uses population standard deviation over all products.
-     * Test expectation: with a mostly tight cluster and two extremes, calling with 2.0 returns the two extremes.
+     * Identifies products whose price is considered an outlier based on the interquartile range (IQR).
+     * A product is considered an outlier if its price lies outside the interval
+     * [Q1 - threshold × IQR, Q3 + threshold × IQR], where:
+     * <ul>
+     *   <li>Q1 is the 25th percentile of all product prices</li>
+     *   <li>Q3 is the 75th percentile</li>
+     *   <li>IQR = Q3 - Q1</li>
+     * </ul>
+     * The threshold defines how far from the IQR bounds a price must be to be considered an outlier.
+     * <p>
+     * Test expectation: with a tightly clustered group and two extreme prices, calling with threshold = 1.5
+     * typically returns the two extremes.
      *
-     * @param threshold threshold in standard deviations (e.g., 2.0)
-     * @return list of products considered outliers
+     * @param threshold multiplier applied to the IQR to define outlier bounds (e.g., 1.5)
+     * @return list of products considered outliers based on price
      */
     public List<Product> findPriceOutliers(double threshold) {
         List<Product> products = warehouse.getProducts();
@@ -196,31 +205,40 @@ class WarehouseAnalyzer {
      * @return list of ShippingGroup objects covering all shippable products
      */
     public List<ShippingGroup> optimizeShippingGroups(BigDecimal maxWeightPerGroup) {
-        double maxW = maxWeightPerGroup.doubleValue();
+        BigDecimal maxW = maxWeightPerGroup.setScale(2,RoundingMode.HALF_UP);
         List<Shippable> items = warehouse.shippableProducts();
         // Sort by descending weight (First-Fit Decreasing)
-        items.sort((a, b) -> Double.compare(Objects.requireNonNullElse(b.weight(), 0.0), Objects.requireNonNullElse(a.weight(), 0.0)));
+        items.sort((a, b) ->{
+            BigDecimal wa = BigDecimal.valueOf(Objects.requireNonNullElse(a.weight(), 0.0));
+            BigDecimal wb = BigDecimal.valueOf(Objects.requireNonNullElse(b.weight(), 0.0));
+            return wb.compareTo(wa);
+        });
         List<List<Shippable>> bins = new ArrayList<>();
         for (Shippable item : items) {
-            double w = Objects.requireNonNullElse(item.weight(), 0.0);
+            BigDecimal itemWeight = BigDecimal.valueOf(Objects.requireNonNullElse(item.weight(), 0.0)).setScale(2, RoundingMode.HALF_UP);
             boolean placed = false;
+
             for (List<Shippable> bin : bins) {
-                double binWeight = bin.stream().map(Shippable::weight).reduce(0.0, Double::sum);
-                if (binWeight + w <= maxW) {
+                BigDecimal binWeight = bin.stream()
+                        .map(s -> BigDecimal.valueOf(Objects.requireNonNullElse(s.weight(), 0.0)))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                if (binWeight.add(itemWeight).compareTo(maxW) <= 0) {
                     bin.add(item);
                     placed = true;
                     break;
                 }
             }
+
             if (!placed) {
                 List<Shippable> newBin = new ArrayList<>();
                 newBin.add(item);
                 bins.add(newBin);
             }
         }
-        List<ShippingGroup> groups = new ArrayList<>();
-        for (List<Shippable> bin : bins) groups.add(new ShippingGroup(bin));
-        return groups;
+
+        return bins.stream().map(ShippingGroup::new).collect(Collectors.toList());
     }
 
     // Business Rules Methods
